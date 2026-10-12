@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UniLatent: Cross-Embodiment Transfer via Latent Observation Alignment</title>
+<meta name="description" content="UniLatent transfers robot manipulation policies across embodiments by aligning observations in latent space instead of translating pixels.">
+<meta property="og:title" content="UniLatent: Cross-Embodiment Transfer via Latent Observation Alignment">
+<meta property="og:description" content="Reuse demonstrations from one robot on another. 76% mean zero-shot transfer in simulation, 27/30 real-world rollouts.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://selina2023.github.io/unilatent/">
+<meta property="og:image" content="https://selina2023.github.io/unilatent/assets/img/og_card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="UniLatent: Cross-Embodiment Transfer via Latent Observation Alignment">
+<meta name="twitter:image" content="https://selina2023.github.io/unilatent/assets/img/og_card.jpg">
+<link rel="canonical" href="https://selina2023.github.io/unilatent/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23282824'/%3E%3Crect x='14' y='14' width='8' height='36' fill='%2335604a'/%3E%3Ctext x='38' y='46' font-family='Arial' font-weight='700' font-size='34' fill='%23e9e5d8' text-anchor='middle'%3EU%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#d3cfbe; --paper:#e7e3d6; --card:#f1eee4;
+  --ink:#282824; --ink-2:#4a4840; --muted:#7a7568; --rule:#b4af9c;
+  --dark:#38362e; --lt:#e9e5d8;
+  --acc:#a83e2f; --good:#35604a;
+  --franka:#5e5b52; --xarm:#2f6ea8; --sawyer:#b0453a;
+  --maxw:1120px;
+  box-sizing:border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth; scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 12px);}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:17px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}
+img,video{max-width:100%; display:block}
+a{color:var(--ink); text-decoration:none; border-bottom:1px solid var(--rule)}
+a:hover{border-bottom-color:var(--ink)}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px}
+.eyebrow{font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); font-weight:500}
+.rule{height:1px; background:var(--rule); border:0; margin:0}
+
+/* ---------- hero ---------- */
+header.hero{padding:64px 0 36px; text-align:center}
+header.hero h1{
+  font-size:clamp(44px,7vw,72px); line-height:1.05; font-weight:700;
+  letter-spacing:-.025em; margin:14px auto 14px; text-wrap:balance;
+}
+header.hero .h1sub{display:block; font-size:clamp(21px,2.9vw,31px); font-weight:500; letter-spacing:-.01em; line-height:1.25; margin:12px auto 0; max-width:30ch; text-wrap:balance; color:var(--ink)}
+header.hero .sub{font-size:clamp(17px,2.2vw,22px); color:var(--ink-2); font-weight:400; margin:0 auto 26px; max-width:760px}
+.authors{font-size:17px; margin:0 0 6px}
+.authors a{border:0}
+.au{white-space:nowrap}
+.affil{font-size:14.5px; color:var(--muted); margin:0 0 4px}
+.venue{font-size:15px; color:var(--ink-2); margin-top:12px; font-weight:500}
+.links{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:26px 0 0}
+.btn{
+  display:inline-flex; align-items:center; gap:8px; border:1px solid var(--rule);
+  background:var(--card); color:var(--ink); border-radius:999px;
+  padding:9px 18px; font-size:14.5px; font-weight:500; letter-spacing:.01em;
+}
+.btn:hover{background:var(--ink); color:var(--lt); border-color:var(--ink)}
+.btn svg{width:15px; height:15px; fill:currentColor}
+
+/* ---------- sections ---------- */
+section{padding:46px 0}
+section > .wrap > .eyebrow{margin-bottom:10px}
+h2{font-size:clamp(25px,3.2vw,34px); line-height:1.2; font-weight:600; letter-spacing:-.015em; margin:0 0 14px}
+h3{font-size:19px; font-weight:600; margin:34px 0 10px}
+p{margin:0 0 16px; max-width:76ch}
+.lead{font-size:19.5px; color:var(--ink-2)}
+.statement{
+  text-wrap:balance;
+  font-size:clamp(22px,3.1vw,31px); line-height:1.3; font-weight:500;
+  letter-spacing:-.01em; margin:0 0 22px; max-width:30ch;
+}
+.band{background:var(--paper); border-top:1px solid var(--rule); border-bottom:1px solid var(--rule)}
+
+/* ---------- media ---------- */
+figure{margin:0}
+.frame{border:1px solid #817c6d; background:var(--dark); overflow:hidden}
+.frame .strip{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:var(--dark); color:var(--lt); padding:7px 12px;
+  font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:500;
+}
+.frame .strip .r{color:#f0ece0; font-weight:700; white-space:nowrap}
+.frame .strip .r.bad{color:#f0a79a}
+.frame .strip .r.ok{color:#a8d8bd}
+.frame video, .frame img{width:100%; height:auto}
+.frame video{background:#2e2c26; object-fit:cover}
+.grid > *{min-width:0}
+.frame .strip > span:first-child{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.frame.fig{border-color:#bdb8a6}
+.frame.fig img{background:var(--card)}
+figcaption{font-size:14.5px; color:var(--muted); margin-top:9px; max-width:76ch}
+
+.grid{display:grid; gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.robotrow{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:8px}
+.robotrow .lab{font-size:13px; text-align:center; color:var(--muted)}
+.rname{font-weight:600; color:var(--ink)}
+
+.tasklabel{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:26px 0 8px}
+.cellcap{font-size:12.5px; color:var(--muted); text-align:center; margin-top:6px}
+.tag{display:inline-block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; font-weight:600; padding:3px 9px; border-radius:999px; vertical-align:middle}
+.tag.base{background:#efd9d3; color:#8c3426}
+.tag.ours{background:#d5e5da; color:#2c5641}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto; border:1px solid var(--rule); background:var(--card)}
+table{border-collapse:collapse; width:100%; font-size:14.5px; min-width:560px}
+caption{caption-side:bottom; text-align:left; font-size:13.5px; color:var(--muted); padding:10px 14px; background:var(--paper)}
+th,td{padding:9px 14px; text-align:center; border-bottom:1px solid #ddd8c7}
+thead th{background:var(--dark); color:var(--lt); font-weight:600; font-size:12px; letter-spacing:.08em; text-transform:uppercase; border-bottom:0}
+tbody th{text-align:left; font-weight:500; white-space:nowrap}
+tr.best{background:#dde9df}
+tr.best th, tr.best td{font-weight:700; color:#23452f}
+tbody tr:last-child td, tbody tr:last-child th{border-bottom:0}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- key numbers ---------- */
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:1px solid var(--rule); background:var(--card)}
+.stats div{padding:26px 20px; text-align:center; border-right:1px solid var(--rule)}
+.stats div:last-child{border-right:0}
+.stats b{display:block; font-size:clamp(30px,4.6vw,44px); font-weight:700; color:var(--good); letter-spacing:-.02em; line-height:1}
+.stats span{display:block; font-size:14px; color:var(--muted); margin-top:9px}
+
+/* ---------- bibtex ---------- */
+pre{
+  background:var(--dark); color:#e4e0d2; padding:18px 20px; overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; line-height:1.6; margin:0;
+}
+footer{padding:40px 0 56px; font-size:14px; color:var(--muted)}
+footer p{max-width:76ch}
+.todo{background:#f3e3c9; border:1px solid #d9b877; padding:14px 18px; font-size:14px; color:#6b4f1d; margin:0 0 26px}
+
+@media (max-width:860px){
+  .g3,.stats{grid-template-columns:1fr 1fr}
+  .stats div:nth-child(2){border-right:0}
+  .stats div:nth-child(3){border-top:1px solid var(--rule)}
+}
+@media (max-width:620px){
+  body{font-size:16px}
+  .g2,.g3,.stats{grid-template-columns:1fr}
+  .robotrow{gap:6px}
+  .robotrow .lab{font-size:11.5px; line-height:1.35}
+  .stats div{border-right:0; border-top:1px solid var(--rule)}
+  .stats div:first-child{border-top:0}
+  section{padding:34px 0}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Conference on Robot Learning 2026</div>
+    <h1>UniLatent<span class="h1sub">Cross&#8209;Embodiment Transfer via Latent Observation Alignment</span></h1>
+    <p class="sub">Reuse demonstrations collected on one robot to control a different one, without translating a single pixel.</p>
+
+    <!-- ===== Replace each href="#" with that person's homepage ===== -->
+    <p class="authors">
+      <span class="au"><a href="#">Yufei Ding</a><sup>1*</sup></span>,
+      <span class="au"><a href="#">Yi Du</a><sup>1*</sup></span>,
+      <span class="au"><a href="#">Weiduo Yuan</a><sup>2</sup></span>,
+      <span class="au"><a href="#">Hao Jiang</a><sup>2</sup></span>,
+      <span class="au"><a href="#">Dylan Goetting</a><sup>3</sup></span>,
+      <span class="au"><a href="#">Lawrence Yunliang Chen</a><sup>3</sup></span>,
+      <span class="au"><a href="#">Daniel Seita</a><sup>2&dagger;</sup></span>,
+      <span class="au"><a href="#">Yue Wang</a><sup>2&dagger;</sup></span>
+    </p>
+    <p class="affil"><span class="au"><sup>1</sup>Stanford University</span> &nbsp;&nbsp; <span class="au"><sup>2</sup>University of Southern California</span> &nbsp;&nbsp; <span class="au"><sup>3</sup>UC Berkeley</span></p>
+    <p class="affil"><sup>*</sup>Equal contribution &nbsp;&nbsp; <sup>&dagger;</sup>Equal advising</p>
+    <p class="venue">Conference on Robot Learning (CoRL) 2026</p>
+
+    <nav class="links">
+      <a class="btn" href="#"><svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v14H6z" opacity=".25"/><path d="M14 2v6h6M8 13h8v1.5H8zm0 4h8v1.5H8z"/></svg>Paper</a>
+      <!-- <a class="btn" href="#">arXiv</a> --> <!-- restore once posted -->
+      <a class="btn" href="#"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-3.2 19.5c-.5-.2-.5-.9-.5-1.2v-2c-2.8.6-3.4-1.3-3.4-1.3-.5-1.1-1.1-1.4-1.1-1.4-.9-.6 0-.6 0-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.3 9.3 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3 0 1-.5 1.2A10 10 0 0012 2z"/></svg>Code</a>
+      <a class="btn" href="#video">Video</a>
+      <a class="btn" href="#bibtex">BibTeX</a>
+    </nav>
+  </div>
+</header>
+
+<section style="padding-top:12px">
+  <div class="wrap">
+    <figure>
+      <div class="frame">
+        <div class="strip"><span>UniLatent · zero-shot transfer · stack cup into bowl</span><span class="r ok">no target demonstrations</span></div>
+        <video src="assets/vid/hero_stack_3robots.mp4" poster="assets/poster/hero_stack_3robots.jpg" width="1200" height="400" aria-label="Franka, xArm7 and Sawyer each stacking a cup into a bowl with the same policy" autoplay muted loop playsinline preload="auto"></video>
+      </div>
+      <div class="robotrow">
+        <div class="lab"><span class="rname" style="color:var(--franka)">Franka</span><br>source robot, in-domain</div>
+        <div class="lab"><span class="rname" style="color:var(--xarm)">xArm7</span><br>target robot, zero-shot</div>
+        <div class="lab"><span class="rname" style="color:var(--sawyer)">Sawyer</span><br>target robot, zero-shot</div>
+      </div>
+      <figcaption>A single policy trained only on Franka demonstrations, executed unchanged on two robots it has never seen. Playback is sped up 2.5&times;.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="stats">
+      <div><b>76%</b><span>mean zero-shot transfer in simulation,<br>against 44.5% for the strongest baseline</span></div>
+      <div><b>27/30</b><span>real-world rollouts, after fine-tuning on<br>10 target demonstrations per task</span></div>
+      <div><b>0</b><span>generated or translated images<br>consumed by the policy</span></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-bottom:10px">
+  <div class="wrap">
+    <div class="eyebrow" id="video">Overview video</div>
+    <figure style="margin-top:12px">
+      <div class="frame">
+        <div class="strip"><span>UniLatent in 36 seconds</span><span class="r">no audio</span></div>
+        <video src="assets/unilatent_video.mp4" poster="assets/poster/overview.jpg" width="1280" height="720" controls preload="none" playsinline aria-label="UniLatent overview video"></video>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Abstract</div>
+    <p class="lead">Robot datasets are costly to collect and are usually tied to a specific embodiment, which makes it hard to reuse demonstrations across robots that differ in geometry, appearance and kinematics. We introduce UniLatent, a cross-embodiment transfer framework that avoids pixel-level image translation. UniLatent renders paired source&ndash;target robot observations in simulation and aligns a source visual encoder to a fixed target encoder, producing a shared latent space for policy learning. A policy trained on encoded source demonstrations can then be deployed on target observations through the target encoder. Across three simulation tasks and two target embodiments, UniLatent reaches up to 93% zero-shot transfer success and improves mean target success over the strongest pixel-translation baseline by more than 30 percentage points. In real-world xArm-to-Franka few-shot transfer, UniLatent completes 27 of 30 target rollouts, consistently outperforming target-only training and pixel-space translation pretraining.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="eyebrow">The problem</div>
+    <h2 class="statement">A policy trained on Franka does not transfer to Sawyer.</h2>
+    <p>In third-person camera views the robot occupies much of the image. Changing the arm alters appearance, self-occlusion, contact geometry and the visibility of task-relevant objects all at once, so a vision-based policy that succeeds in-domain can fail outright on new hardware. Both clips below run the same task from the same source demonstrations.</p>
+    <div class="grid g2" style="margin-top:22px">
+      <figure>
+        <div class="frame">
+          <div class="strip"><span>Direct policy transfer</span><span class="r bad">0% success</span></div>
+          <video poster="assets/poster/base_direct_sawyer.jpg" width="384" height="384" aria-label="baseline direct sawyer" data-src="assets/vid/base_direct_sawyer.mp4" autoplay muted loop playsinline preload="none"></video>
+        </div>
+        <figcaption><span class="tag base">Baseline</span> &nbsp;The arm reaches over the bowl and never picks up the cup.</figcaption>
+      </figure>
+      <figure>
+        <div class="frame">
+          <div class="strip"><span>Frozen DINOv2, no alignment</span><span class="r bad">0% success</span></div>
+          <video poster="assets/poster/base_dinov2_sawyer.jpg" width="384" height="384" aria-label="baseline dinov2 sawyer" data-src="assets/vid/base_dinov2_sawyer.mp4" autoplay muted loop playsinline preload="none"></video>
+        </div>
+        <figcaption><span class="tag base">Baseline</span> &nbsp;A general-purpose visual backbone is not invariant to the embodiment change.</figcaption>
+      </figure>
+    </div>
+    <p style="margin-top:18px">On the source Franka the very same policies reach 80&ndash;89% on this task. Prior work closes this gap by editing the source frames &mdash; masking, inpainting or diffusion-based robot generation &mdash; but then the policy consumes edited pixels, so segmentation errors, distorted grippers and inconsistent contact regions propagate straight into closed-loop control.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The idea</div>
+    <h2 class="statement">Align representations, not pixels.</h2>
+    <p>We render large numbers of paired observations in which a source and a target robot hold the <em>same</em> tool-center-point pose under the same camera and the same randomized scene. These pairs supervise a source encoder to map source images into the latent space of a frozen target encoder. The renderer only has to establish cross-robot correspondence; it never has to look photorealistic, because the policy never consumes a rendered target image.</p>
+    <figure style="margin-top:24px">
+      <div class="frame fig">
+        <div class="strip"><span>Paired renderings · matched tool-center-point pose, identical camera</span><span class="r">about 100 000 images</span></div>
+        <img loading="lazy" src="assets/img/fig3_paired.jpg" alt="Paired renderings of Franka, xArm and Sawyer at matched end-effector poses under randomized scenes">
+      </div>
+      <figcaption>Rows: Franka (source), xArm7, Sawyer. Each column is one sampled end-effector pose rendered for every robot. Domain randomization varies floors, walls, table materials, lighting, object assets, distractors and small camera perturbations, while preserving pairwise action correspondence.</figcaption>
+    </figure>
+    <figure style="margin-top:34px">
+      <div class="frame fig">
+        <div class="strip"><span>Pipeline overview</span><span class="r">four stages</span></div>
+        <img loading="lazy" src="assets/img/fig2_pipeline.jpg" alt="UniLatent pipeline: paired image generation, observation alignment, latent policy training, deployment">
+      </div>
+      <figcaption>
+        <strong>1. Paired rendering.</strong> Sample manipulation-relevant TCP poses, solve inverse kinematics for both embodiments, keep only poses feasible for all robots, and render from an identical camera.
+        <strong>2. Observation alignment.</strong> Instantiate both encoders from DINOv2-base; freeze the target encoder and train only the source encoder to match its CLS and patch tokens under an MSE loss.
+        <strong>3. Latent policy.</strong> Encode source demonstrations and train a conditional flow-matching policy over end-effector action chunks.
+        <strong>4. Deployment.</strong> Encode the target robot's own images with the same frozen target encoder and call the same policy. No image synthesis at test time.
+      </figcaption>
+    </figure>
+    <figure style="margin-top:34px">
+      <div class="frame fig">
+        <div class="strip"><span>Alignment over training</span><span class="r">embeddings · cross-decoding</span></div>
+        <img loading="lazy" src="assets/img/fig1_teaser.jpg" alt="Source and target embeddings overlap more as alignment trains, and cross-decoded source observations become target-consistent">
+      </div>
+      <figcaption>Top: source and target embeddings increasingly overlap as the source encoder trains. Bottom: decoding aligned source features through a target-domain decoder yields progressively more target-consistent images, a visual check that the latent spaces now agree. The policy itself never uses these decoded images.</figcaption>
+    </figure>
+    <h3>Why freezing the target encoder matters</h3>
+    <p>Because the target encoder is never updated, the features observed at deployment are produced by exactly the model that defined the alignment objective. Training only the source encoder asks a source image to produce the representation associated with the matched target observation, rather than forcing both domains into an unconstrained shared space that neither robot occupies at test time.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="eyebrow">Results · simulation</div>
+    <h2 class="statement">One policy. Three robots. No target data.</h2>
+    <p>Franka is the source robot. Policies are trained only on Franka demonstrations and evaluated zero-shot on xArm7 and Sawyer across three tasks that stress different manipulation modes: articulated contact, grasp-and-place precision and nonprehensile pushing.</p>
+
+    <div class="tasklabel">Close Box Lid &nbsp;·&nbsp; articulated contact</div>
+    <div class="grid g3">
+      <figure><div class="frame"><div class="strip"><span>Franka</span><span class="r">source</span></div><video poster="assets/poster/ours_our_close_box_franka.jpg" width="384" height="384" aria-label="UniLatent our close box franka" data-src="assets/vid/ours_our_close_box_franka.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>xArm7</span><span class="r ok">zero-shot</span></div><video poster="assets/poster/ours_our_close_box_xarm7.jpg" width="384" height="384" aria-label="UniLatent our close box xarm7" data-src="assets/vid/ours_our_close_box_xarm7.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Sawyer</span><span class="r ok">zero-shot</span></div><video poster="assets/poster/ours_our_close_box_sawyer.jpg" width="384" height="384" aria-label="UniLatent our close box sawyer" data-src="assets/vid/ours_our_close_box_sawyer.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+    </div>
+
+    <div class="tasklabel">Stack Cup into Bowl &nbsp;·&nbsp; grasp-and-place precision</div>
+    <div class="grid g3">
+      <figure><div class="frame"><div class="strip"><span>Franka</span><span class="r">source</span></div><video poster="assets/poster/ours_stack_bowl_cup_franka.jpg" width="384" height="384" aria-label="UniLatent stack bowl cup franka" data-src="assets/vid/ours_stack_bowl_cup_franka.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>xArm7</span><span class="r ok">zero-shot</span></div><video poster="assets/poster/ours_stack_bowl_cup_xarm7.jpg" width="384" height="384" aria-label="UniLatent stack bowl cup xarm7" data-src="assets/vid/ours_stack_bowl_cup_xarm7.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Sawyer</span><span class="r ok">zero-shot</span></div><video poster="assets/poster/ours_stack_bowl_cup_sawyer.jpg" width="384" height="384" aria-label="UniLatent stack bowl cup sawyer" data-src="assets/vid/ours_stack_bowl_cup_sawyer.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+    </div>
+
+    <div class="tasklabel">Kick Football &nbsp;·&nbsp; nonprehensile pushing</div>
+    <div class="grid g3">
+      <figure><div class="frame"><div class="strip"><span>Franka</span><span class="r">source</span></div><video poster="assets/poster/ours_football_franka.jpg" width="384" height="384" aria-label="UniLatent football franka" data-src="assets/vid/ours_football_franka.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>xArm7</span><span class="r ok">zero-shot</span></div><video poster="assets/poster/ours_football_xarm7.jpg" width="384" height="384" aria-label="UniLatent football xarm7" data-src="assets/vid/ours_football_xarm7.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Sawyer</span><span class="r ok">zero-shot</span></div><video poster="assets/poster/ours_football_sawyer.jpg" width="384" height="384" aria-label="UniLatent football sawyer" data-src="assets/vid/ours_football_sawyer.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+    </div>
+
+    <h3>Zero-shot transfer success</h3>
+    <div class="tablewrap" style="margin-top:12px">
+      <table>
+        <thead>
+          <tr><th rowspan="2" style="text-align:left">Method</th><th colspan="3">Close Box Lid</th><th colspan="3">Stack Cup into Bowl</th><th colspan="3">Kick Football</th></tr>
+          <tr><th>Franka</th><th>xArm7</th><th>Sawyer</th><th>Franka</th><th>xArm7</th><th>Sawyer</th><th>Franka</th><th>xArm7</th><th>Sawyer</th></tr>
+        </thead>
+        <tbody class="num">
+          <tr><th>Direct transfer</th><td>97</td><td>2</td><td>5</td><td>80</td><td>0</td><td>0</td><td>90</td><td>1</td><td>1</td></tr>
+          <tr><th>Frozen DINOv2, no alignment</th><td>97</td><td>40</td><td>16</td><td>89</td><td>3</td><td>0</td><td>93</td><td>11</td><td>1</td></tr>
+          <tr><th>RoVi-Aug* (pixel translation)</th><td>97</td><td>93</td><td>54</td><td>89</td><td>15</td><td>5</td><td>93</td><td>60</td><td>40</td></tr>
+          <tr class="best"><th>UniLatent (ours)</th><td>97</td><td>93</td><td>81</td><td>89</td><td>65</td><td>51</td><td>93</td><td>89</td><td>77</td></tr>
+        </tbody>
+        <caption>Mean success rate (%) over 100 rollouts. Trained on Franka demonstrations, evaluated zero-shot on xArm7 and Sawyer. The largest gains appear on Franka&rarr;Sawyer and on contact-rich tasks, where preserving target-consistent latent features matters most.</caption>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Results · real robots</div>
+    <h2 class="statement">Real hardware: xArm demonstrations, Franka deployment.</h2>
+    <p>We collect demonstrations on a real xArm, pretrain a latent policy in the aligned space, then fine-tune on only 10 Franka demonstrations per task and evaluate 10 rollouts per task on the Franka. A single task-agnostic aligned encoder, trained entirely on simulated renderings, drives all three real tasks.</p>
+    <div class="grid g3" style="margin-top:22px">
+      <figure><div class="frame"><div class="strip"><span>Close Drawer</span><span class="r ok">10 / 10</span></div><video poster="assets/poster/real_close_success_1.jpg" width="480" height="360" aria-label="real robot close success 1" data-src="assets/vid/real_close_success_1.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Close Box Lid</span><span class="r ok">9 / 10</span></div><video poster="assets/poster/real_close_box_success_1.jpg" width="480" height="360" aria-label="real robot close box success 1" data-src="assets/vid/real_close_box_success_1.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Wipe Table</span><span class="r ok">8 / 10</span></div><video poster="assets/poster/real_wipe_success_1.jpg" width="480" height="360" aria-label="real robot wipe success 1" data-src="assets/vid/real_wipe_success_1.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      <figure><div class="frame"><div class="strip"><span>Close Drawer</span><span class="r">second rollout</span></div><video poster="assets/poster/real_close_success_2.jpg" width="480" height="360" aria-label="real robot close success 2" data-src="assets/vid/real_close_success_2.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Close Box Lid</span><span class="r">second rollout</span></div><video poster="assets/poster/real_close_box_success_2.jpg" width="480" height="360" aria-label="real robot close box success 2" data-src="assets/vid/real_close_box_success_2.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Wipe Table</span><span class="r">second rollout</span></div><video poster="assets/poster/real_wipe_success_2.jpg" width="480" height="360" aria-label="real robot wipe success 2" data-src="assets/vid/real_wipe_success_2.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+    </div>
+
+    <div class="tablewrap" style="margin-top:28px">
+      <table>
+        <thead><tr><th style="text-align:left">Setting</th><th>Close Drawer</th><th>Close Box Lid</th><th>Wipe Table</th></tr></thead>
+        <tbody class="num">
+          <tr><th>Source-only (xArm, in-domain reference)</th><td>10/10</td><td>8/10</td><td>10/10</td></tr>
+          <tr><th>Target-only, few-shot (Franka)</th><td>7/10</td><td>2/10</td><td>2/10</td></tr>
+          <tr><th>RoVi-Aug pretrain + few-shot</th><td>9/10</td><td>9/10</td><td>5/10</td></tr>
+          <tr class="best"><th>UniLatent pretrain + few-shot (ours)</th><td>10/10</td><td>9/10</td><td>8/10</td></tr>
+        </tbody>
+        <caption>Real-world few-shot transfer. <em>Source-only</em> trains and evaluates on xArm and serves as an in-domain reference rather than a Franka transfer result. The remaining rows are all evaluated on Franka and use the same 10 Franka demonstrations. The improvement is largest on Close Box Lid and Wipe Table, where a target-only policy rarely observes enough successful contact variation from 10 demonstrations.</caption>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="eyebrow">Why latent transfer helps</div>
+    <h2 class="statement">Decoded frames look right and act wrong.</h2>
+    <p>A translated target-looking frame can preserve global scene layout while getting the wrist, the gripper opening or the object contact region subtly wrong &mdash; and a closed-loop policy amplifies exactly those errors. UniLatent uses the same paired-rendering information to align features, but never trains the policy on synthesized target pixels.</p>
+    <div class="grid g2" style="margin-top:22px">
+      <figure>
+        <div class="frame fig"><div class="strip"><span>Pixel-space translation examples</span><span class="r">four views</span></div><img loading="lazy" src="assets/img/fig5_translation.jpg" alt="Comparison of source observation, target pair, decoded source translation and target reconstruction"></div>
+        <figcaption>Columns: source observation, its true target pair, the decoded source translation used by RoVi-Aug*, and the target reconstruction.</figcaption>
+      </figure>
+      <figure>
+        <div class="frame fig"><div class="strip"><span>Translation strategies compared</span><span class="r">three methods</span></div><img loading="lazy" src="assets/img/suppfig1_pixel.jpg" alt="Qualitative comparison of pixel-space translation baselines"></div>
+        <figcaption>Diffusion-based generation produces distorted links and inconsistent joint structure under hard poses; segmentation masking erases the very contact cues manipulation depends on.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Further analyses</div>
+    <h2>Beyond the default setting</h2>
+
+    <h3>The same recipe absorbs other systematic shifts</h3>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="tablewrap">
+        <table style="min-width:320px">
+          <thead><tr><th style="text-align:left">Source robot(s)</th><th>Demos</th><th>Success</th></tr></thead>
+          <tbody class="num">
+            <tr><th>Sawyer</th><td>100</td><td>64</td></tr>
+            <tr><th>Franka</th><td>100</td><td>63</td></tr>
+            <tr><th>Sawyer</th><td>200</td><td>84</td></tr>
+            <tr><th>Franka</th><td>200</td><td>92</td></tr>
+            <tr class="best"><th>Sawyer + Franka</th><td>200</td><td>91</td></tr>
+          </tbody>
+          <caption>Multi-source transfer to xArm7. Each source gets its own encoder aligned to the same frozen target encoder, and one latent policy trains on the union of demonstrations.</caption>
+        </table>
+      </div>
+      <div class="tablewrap">
+        <table style="min-width:320px">
+          <thead><tr><th style="text-align:left">Alignment</th><th>Deploy v1</th><th>Deploy v2</th></tr></thead>
+          <tbody class="num">
+            <tr><th>Matched view (v1&harr;v1)</th><td>97</td><td>62</td></tr>
+            <tr class="best"><th>Cross-view (v1&harr;v2)</th><td>96</td><td>89</td></tr>
+          </tbody>
+          <caption>Viewpoint shift. Treating two camera viewpoints of the same robot as the two domains recovers most of the drop on the shifted view, with no test-time warping and no viewpoint-specific module.</caption>
+        </table>
+      </div>
+    </div>
+
+    <h3>Source-side visual diversity carries over to the target</h3>
+    <p>Alignment is anchored to a frozen target encoder, so background randomization applied on the source side is inherited by the transferred target policy. The three clips below are the same task and the same method under different rendered scenes.</p>
+    <div class="grid g3" style="margin-top:16px">
+      <figure><div class="frame"><div class="strip"><span>Wood floor</span><span class="r ok">transfers</span></div><video poster="assets/poster/bg_v02_close_box.jpg" width="900" height="300" aria-label="bg v02 close box" data-src="assets/vid/bg_v02_close_box.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Teal studio</span><span class="r ok">transfers</span></div><video poster="assets/poster/bg_v03_close_box.jpg" width="900" height="300" aria-label="bg v03 close box" data-src="assets/vid/bg_v03_close_box.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+      <figure><div class="frame"><div class="strip"><span>Dark studio</span><span class="r ok">transfers</span></div><video poster="assets/poster/bg_v08_close_box.jpg" width="900" height="300" aria-label="bg v08 close box" data-src="assets/vid/bg_v08_close_box.mp4" autoplay muted loop playsinline preload="none"></video></div></figure>
+    </div>
+    <div class="tablewrap" style="margin-top:20px">
+      <table style="min-width:420px">
+        <thead><tr><th style="text-align:left">Setting</th><th>Franka (source)</th><th>xArm7</th><th>Sawyer</th></tr></thead>
+        <tbody class="num">
+          <tr><th>Randomized background, 5 unseen scenes</th><td>88.6</td><td>85.6</td><td>80.0</td></tr>
+          <tr><th>Matched train&ndash;test background</th><td>97</td><td>93</td><td>81</td></tr>
+        </tbody>
+        <caption>Transfer under background shift on Close Box Lid. Success is largely retained in held-out scenes on all three robots.</caption>
+      </table>
+    </div>
+
+    <h3>Manipulation-relevant pose sampling is what makes the pairs useful</h3>
+    <div class="grid g2" style="margin-top:14px">
+      <figure>
+        <div class="frame fig"><div class="strip"><span>Unconstrained random poses</span><span class="r bad">60 / 32</span></div><img loading="lazy" src="assets/img/suppfig2a_poses.jpg" alt="Unconstrained random pose sampling produces twisted joints, collisions and out-of-view grippers"></div>
+        <figcaption>Transfer on Close Box Lid falls to 60% (xArm7) and 32% (Sawyer).</figcaption>
+      </figure>
+      <figure>
+        <div class="frame fig"><div class="strip"><span>Manipulation-relevant pose prior</span><span class="r ok">93 / 81</span></div><img loading="lazy" src="assets/img/suppfig2b_poses.jpg" alt="Manipulation-relevant pose prior produces task-plausible tabletop configurations"></div>
+        <figcaption>Task-plausible configurations with diverse gripper states and orientations. Transfer reaches 93% and 81%.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="eyebrow">Limitations</div>
+    <h2>What this does not cover</h2>
+    <p>UniLatent currently targets single-arm robots with parallel-jaw grippers and a shared end-effector action interface. Extending to dexterous hands, mobile manipulators, or tasks that require tool-specific contact would need additional retargeting and contact modeling. The method also assumes the target robot can complete source tasks within a comparable workspace; demonstrations outside the target's reachable set may need trajectory modification. Our real-world evaluation uses a single physical setup, so tests under broader background and object variation remain future work.</p>
+  </div>
+</section>
+
+<section id="bibtex">
+  <div class="wrap">
+    <div class="eyebrow">Citation</div>
+    <h2>BibTeX</h2>
+<pre>@inproceedings{ding2026unilatent,
+  title     = {UniLatent: Cross-Embodiment Transfer via Latent Observation Alignment},
+  author    = {Ding, Yufei and Du, Yi and Yuan, Weiduo and Jiang, Hao and
+               Goetting, Dylan and Chen, Lawrence Yunliang and Seita, Daniel and
+               Wang, Yue},
+  booktitle = {Conference on Robot Learning (CoRL)},
+  year      = {2026}
+}</pre>
+  </div>
+</section>
+
+<hr class="rule">
+<footer>
+  <div class="wrap">
+    <p>Project page for <em>UniLatent: Cross-Embodiment Transfer via Latent Observation Alignment</em>, CoRL 2026. All simulation footage is rendered in IsaacLab / RoboVerse; real-robot footage is recorded on a RealSense D435i at 640&times;480 and 10&nbsp;Hz. Clip playback speeds are noted where footage is sped up.</p>
+    <p>Corresponding author: Yufei Ding, <a href="mailto:YOUR_EMAIL">YOUR_EMAIL</a></p>
+  </div>
+</footer>
+
+<script>
+// Load each video only when it is about to enter the viewport, so the page
+// stays light even though it holds two dozen clips.
+(function () {
+  var vids = Array.prototype.slice.call(document.querySelectorAll('video[data-src]'));
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) Array.prototype.forEach.call(document.querySelectorAll('video[autoplay]:not([data-src])'), function (v) {
+    v.removeAttribute('autoplay'); v.pause(); v.controls = true;
+  });
+  function load(v) {
+    if (v.dataset.loaded) return;
+    v.dataset.loaded = '1';
+    if (reduce) { v.removeAttribute('autoplay'); v.controls = true; v.preload = 'metadata'; v.src = v.dataset.src; return; }
+    v.src = v.dataset.src;
+    var p = v.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+  if (!('IntersectionObserver' in window)) { vids.forEach(load); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      load(e.target);
+      io.unobserve(e.target);
+    });
+  }, { rootMargin: '300px 0px' });
+  vids.forEach(function (v) { io.observe(v); });
+})();
+</script>
+</body>
+</html>
