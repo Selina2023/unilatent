@@ -32,15 +32,13 @@
     setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
   }));
 
-  // scene picker: swaps the Franka and Sawyer clips of one task between rendered scenes
+  // scene picker: swaps the three robot clips of one task between rendered scenes
   document.querySelectorAll('.scene-pick').forEach(pick => {
     const pane = pick.closest('.pane'), task = pick.dataset.task;
     const name = (sc, r) => sc === 'v06' ? `ours_${task}_${r}` : `bg_${sc}_${task.replace('our_', '')}_${r}`;
     pick.querySelectorAll('[data-scene]').forEach(b => b.addEventListener('click', () => {
       pick.querySelectorAll('[data-scene]').forEach(x => x.setAttribute('aria-pressed', x === b));
       pane.querySelectorAll('video[data-robot]').forEach(v => {
-        const only = v.parentElement.dataset.only;
-        if (only) { const off = !only.split(' ').includes(b.dataset.scene); v.parentElement.classList.toggle('off', off); if (off) { v.pause(); return; } }
         const n = name(b.dataset.scene, v.dataset.robot);
         v.poster = `assets/poster/${n}.jpg`; v.dataset.src = `assets/vid/${n}.mp4`; v.src = v.dataset.src; v.play?.().catch(() => {});
       });
