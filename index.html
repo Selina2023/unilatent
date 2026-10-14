@@ -519,7 +519,7 @@
         </article>
       </div>
       <h3 class="sub-h reveal">RoVi-Aug* in closed loop</h3>
-      <p class="fine wide reveal"><b>RoVi-Aug*</b>, the strongest baseline in simulation, is our adaptation of RoVi-Aug: it shares UniLatent&rsquo;s paired renderings, aligned encoder and demonstrations, but decodes the aligned features back into target-robot images and trains a standard pixel-space policy on them. The two differ in where the embodiment gap is closed: RoVi-Aug* rewrites the source demonstrations as target-robot pixels and then acts on raw target images, while UniLatent never edits an image and both trains and acts in the frozen target encoder&rsquo;s feature space. The rollouts below are zero-shot from Franka demonstrations, with success over 100 rollouts (Table 1).</p>
+      <p class="fine wide reveal"><b>RoVi-Aug*</b>, the strongest baseline in simulation, uses the same paired renderings to translate source demonstrations into target-robot images, then trains a pixel-space policy on them. UniLatent never edits an image: it trains and acts in the frozen target encoder&rsquo;s feature space. Rollouts below are zero-shot from Franka demonstrations, with success over 100 rollouts (Table 1).</p>
       <div class="tabs reveal">
         <input class="tab-in" type="radio" name="rx" id="rx-0" checked>
         <input class="tab-in" type="radio" name="rx" id="rx-1">
