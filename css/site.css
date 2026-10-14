@@ -486,3 +486,18 @@ td.mean, th.mean { border-left: 1px solid var(--line); font-weight: 650; }
 .duel-card.bars-only { align-self: center; }
 .hw-stage .tsne { border: 0; aspect-ratio: 805 / 670; }
 .cards.two.narrow { max-width: 880px; }
+
+/* more backgrounds: an optional gallery of extra display renders under the sim tabs */
+.more-bg { margin-top: 18px; }
+.more-bg summary { list-style: none; display: inline-flex; align-items: center; gap: 10px; padding: 9px 16px; border-radius: 999px; cursor: pointer;
+  font-size: 14.5px; font-weight: 600; color: var(--ink); background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+.more-bg summary::-webkit-details-marker { display: none; }
+.more-bg summary::after { content: ""; width: 7px; height: 7px; margin-left: 2px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
+.more-bg[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+.more-bg summary small { color: var(--ink3); font-weight: 500; font-size: 13px; }
+.more-bg summary:hover { background: rgba(255,255,255,.1); }
+.more-bg .opened, .more-bg[open] .closed { display: none; }
+.more-bg[open] .opened { display: inline; }
+.more-bg .gal-h { margin: 22px 0 0; font-size: 16px; font-weight: 650; color: var(--ink2); }
+.cards.gallery { margin-top: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.cards.gallery .cap-bar .who, .cards.gallery .cap-bar .num { font-size: 13px; }
