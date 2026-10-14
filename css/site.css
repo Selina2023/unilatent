@@ -444,12 +444,6 @@ td.mean, th.mean { border-left: 1px solid var(--line); font-weight: 650; }
 .chart .caption { padding: 10px 0 12px; }
 @media (max-width: 599px) { .bars-chart { --labw: 118px; } .brow .lab { font-size: 12.5px; line-height: 1.3; } .bars-chart .axis { right: 52px; } .brow { grid-template-columns: var(--labw) minmax(0, 1fr) 42px; gap: 8px; } }
 
-/* scene picker inside a task tab (needs the script, so it stays hidden without it) */
-.pane-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 14px; }
-.pane-top .task-line { margin: 0; }
-.scene-pick { display: none; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
-.js .scene-pick { display: flex; }
-
 .hw-stage .tsne { border-color: #fdfcf7; box-shadow: none; }
 .callout.reveal { margin-top: 16px; }
 .foot .contact { color: var(--ink2); font-size: 14.5px; }
