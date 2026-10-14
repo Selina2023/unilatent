@@ -449,7 +449,6 @@ td.mean, th.mean { border-left: 1px solid var(--line); font-weight: 650; }
 /* scene picker inside a task tab (needs the script, so it stays hidden without it) */
 .pane-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 14px; }
 .pane-top .task-line { margin: 0; }
-.scene-note { margin: 12px 0 0; color: var(--ink3); font-size: 13.5px; line-height: 1.55; text-wrap: pretty; }
 .scene-pick { display: none; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
 .js .scene-pick { display: flex; }
 

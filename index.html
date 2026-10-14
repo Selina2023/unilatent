@@ -81,10 +81,11 @@
     </nav>
 
     <p class="tldr glass panel"><b>TL;DR</b>
-      A visual policy trained on one robot fails when a different arm appears in the camera.
-      UniLatent renders paired images of both robots at the same gripper pose in simulation and trains the source encoder to
-      match a <em>frozen</em> target encoder. A policy trained on encoded source demonstrations then runs on the target robot
-      through that frozen encoder. No image is translated or generated at any point.
+      A vision policy trained on one robot fails on another, because the arm it sees in the image has changed.
+      UniLatent closes this gap in the policy&rsquo;s feature space instead of in pixels. It trains the source robot&rsquo;s image encoder
+      to produce the features that a <em>frozen</em> encoder gives the target robot in the same pose, using paired renderings from
+      simulation. Source demonstrations encoded this way look to the policy as if they came from the target robot, so the policy runs
+      on the target directly, with no image translated or generated.
     </p>
   </header>
 
@@ -105,7 +106,7 @@
       <div class="sec-head reveal" id="abstract">
         <p class="kicker">Abstract</p>
       </div>
-      <p class="abstract reveal">Robot datasets are costly to collect and are usually tied to a specific embodiment, which makes it hard to reuse demonstrations across robots that differ in geometry, appearance and kinematics. We introduce UniLatent, a cross-embodiment transfer framework that avoids pixel-level image translation. UniLatent renders paired source&ndash;target robot observations in simulation and aligns a source visual encoder to a fixed target encoder, producing a shared latent space for policy learning. A policy trained on encoded source demonstrations can then be deployed on target observations through the target encoder. Across three simulation tasks and two target embodiments, UniLatent reaches up to 93% zero-shot transfer success and improves mean target success over the strongest pixel-translation baseline by more than 30 percentage points. In real-world xArm-to-Franka few-shot transfer, UniLatent completes 27 of 30 target rollouts, consistently outperforming target-only training and pixel-space translation pretraining.</p>
+      <p class="abstract reveal">Robot datasets are costly to collect and are usually tied to a specific embodiment, making it difficult to reuse demonstrations across robots with different geometry, appearance, and kinematics. We introduce UniLatent, a cross-embodiment transfer framework that reduces the embodiment-induced observation gap in a shared latent space. UniLatent renders paired source&ndash;target robot observations in simulation and aligns a source visual encoder to a frozen target encoder. A policy trained on encoded source demonstrations can then run directly on target observations, with no pixel-level image translation. Across three simulation tasks and two target robot arms, UniLatent reaches up to 93% zero-shot success, exceeding the strongest pixel-translation baseline by over 30 points on average. In real-world xArm-to-Franka transfer, fine-tuning with only 10 target demonstrations per task yields 27/30 successful rollouts.</p>
       <div class="sec-head reveal" id="video">
         <p class="kicker">Overview video</p>
         <h2>UniLatent in under a minute</h2>
@@ -125,7 +126,7 @@
       <div class="sec-head reveal">
         <p class="kicker">The problem</p>
         <h2>A policy trained on Franka does not transfer to Sawyer.</h2>
-        <p class="lead">In third-person views the robot fills much of the image. Changing the arm alters appearance, self-occlusion and what the camera can see of the task, all at once. Both policies below, shown on Stack Cup into Bowl, reach 80&ndash;89% on the source Franka.</p>
+        <p class="lead">The two arms below share the same end-effector action interface, so the actions themselves transfer. What does not transfer is the image: in a third-person view the robot fills much of the frame, and swapping the arm changes its appearance, how it occludes itself and what the camera sees of the contact. On Stack Cup into Bowl, both policies reach 80&ndash;89% on the Franka they were trained on, and 0% on Sawyer.</p>
       </div>
       <div class="cards two narrow reveal">
         <figure class="card">
@@ -141,7 +142,7 @@
           <figcaption><b>Frozen DINOv2, no alignment.</b> A general-purpose backbone is not invariant to the embodiment change.</figcaption>
         </figure>
       </div>
-      <p class="fine reveal">Prior work closes this gap by editing the source frames with masking, inpainting or diffusion-based robot generation. The policy then consumes edited pixels, so distorted grippers and inconsistent contact regions propagate straight into closed-loop control.</p>
+      <p class="fine reveal">Prior work closes the gap in pixel space: it edits the source frames by masking, inpainting or diffusion-based generation until the source robot looks like the target. The policy then learns from edited images but acts on real ones, so segmentation errors, distorted grippers and misplaced contact regions become a mismatch between training and deployment.</p>
     </div>
   </section>
 
@@ -151,12 +152,30 @@
       <div class="sec-head reveal">
         <p class="kicker">The idea</p>
         <h2>Align representations, not pixels.</h2>
-        <p class="lead">Render a source and a target robot holding the <em>same</em> tool-center-point pose, under the same camera and the same randomized scene. These pairs teach a source encoder to map source images into the feature space of a frozen target encoder. The renderer only has to establish correspondence. It never has to look photorealistic, because the policy never sees a rendered target image.</p>
+        <p class="lead">UniLatent removes the embodiment gap inside the policy&rsquo;s visual representation. A frozen, pretrained encoder E<sub>T</sub> defines the features the policy will receive on the target robot. A second encoder E<sub>S</sub> is trained so that an image of the source robot produces the features E<sub>T</sub> assigns to the target robot in the same pose. Demonstrations recorded on the source robot and encoded by E<sub>S</sub> then look to the policy as if they had been recorded on the target, so the same policy runs on the target robot through E<sub>T</sub>.</p>
+      </div>
+
+      <div class="strategies principles reveal">
+        <article class="strat">
+          <h3>The target representation never moves</h3>
+          <p class="how">Only E<sub>S</sub> is trained. E<sub>T</sub> is frozen, so the features the alignment aims for are exactly the features the deployed policy reads.</p>
+          <p class="what">The policy trains and acts in one representation. Pixel translation, by contrast, trains on synthesized images and acts on real ones.</p>
+        </article>
+        <article class="strat">
+          <h3>Supervision comes from robot models</h3>
+          <p class="how">Paired images of both robots at the same tool-center-point pose are rendered in simulation from robot models, inverse kinematics and randomized scenes.</p>
+          <p class="what">Alignment needs no demonstrations on either robot, so an encoder aligned on generic pairs can be reused across tasks.</p>
+        </article>
+        <article class="strat">
+          <h3>Aligned in simulation, used on real robots</h3>
+          <p class="how">E<sub>T</sub> is off-the-shelf DINOv2, pretrained on real images. Simulation only teaches E<sub>S</sub> to map into that fixed real-image representation.</p>
+          <p class="what">On the real xArm and Franka, one encoder aligned on about 100k generic rendered pairs serves all three tasks.</p>
+        </article>
       </div>
 
       <figure class="paper reveal">
         <img loading="lazy" src="assets/img/fig3_paired.jpg" width="1600" height="661" alt="Paired renderings of Franka, xArm7 and Sawyer at matched end-effector poses under randomized scenes">
-        <figcaption><b>Paired renderings.</b> Rows: Franka (source), xArm7, Sawyer. Each column is one sampled pose rendered for every robot. Floors, walls, materials, lighting, objects and distractors are randomized while the pose correspondence is preserved. About 100k generic pairs are rendered.</figcaption>
+        <figcaption><b>Paired renderings</b> (paper Fig. 3). Each column is one sampled end-effector pose rendered for Franka (top), xArm7 and Sawyer (bottom) from the same camera in the same randomized scene. Within a column only the robot changes, so each pair isolates what the embodiment does to the image. About 100k task-agnostic pairs are rendered, with poses drawn from a manipulation-relevant prior.</figcaption>
       </figure>
 
       <div class="howit reveal" id="howit" data-step="0">
@@ -281,27 +300,23 @@
         </div>
 
         <div class="hw-cap" aria-live="polite">
-          <p class="s0"><b>Align observations.</b> Each pair shows two robots at the same tool-center-point pose under the same camera and scene. Only the source encoder E<sub>S</sub> is trained, with an MSE loss on CLS and patch tokens, so a source image produces the features of its matched target image. The target encoder E<sub>T</sub> stays frozen.</p>
-          <p class="s1"><b>Alignment over training.</b> Left: t-SNE of source (Franka) and target (Sawyer) embeddings over epochs 0 to 4 of alignment training. The two clouds start apart and end overlapping. Right: decoding the aligned source features through a target-domain decoder gives progressively more target-like images. The decoded images are only a visual check. The policy never sees them.</p>
-          <p class="s2"><b>Train the policy.</b> Source demonstrations are encoded with the frozen E<sub>S</sub>. A conditional flow-matching policy learns to predict end-effector action chunks (H = 8) from a short latent history (k = 3).</p>
-          <p class="s3"><b>Deploy on the target.</b> The target robot's own camera images go through the same frozen E<sub>T</sub>, and the same policy acts on them in closed loop. Nothing is translated or generated at test time.</p>
+          <p class="s0"><b>Align observations.</b> Each pair shows two robots at the same tool-center-point pose, from the same camera in the same randomized scene. E<sub>S</sub> is trained with an MSE loss on CLS and patch tokens to output, for the source image, the features the frozen E<sub>T</sub> gives the target image. After training, both images of a pair map to the same representation.</p>
+          <p class="s1"><b>Alignment over training.</b> Left: t-SNE of Franka (source) and Sawyer (target) embeddings from epoch 0 to 4. The two embodiments start in separate clusters and end overlapping. Right: decoding aligned Franka features back to pixels shows an increasingly Sawyer-like robot, a visual check that E<sub>S</sub> now encodes the target embodiment. The policy never uses these images.</p>
+          <p class="s2"><b>Train the policy.</b> Source demonstrations are encoded with the aligned E<sub>S</sub>, now frozen. A flow-matching policy learns to predict chunks of 8 end-effector actions (position, orientation, gripper) from the last 3 latent observations. It trains on target-aligned features, never on pixels.</p>
+          <p class="s3"><b>Deploy on the target.</b> The target robot&rsquo;s camera images go through the frozen E<sub>T</sub>, the encoder that defined the alignment, and the same policy acts on them in closed loop. No image is translated or generated at test time.</p>
         </div>
       </div>
 
       <div class="split even reveal">
         <figure class="paper">
           <img loading="lazy" src="assets/img/fig1_teaser.jpg" width="1600" height="519" alt="Paper Fig. 1: t-SNE of source and target embeddings converging over training, and cross-decoded frames d0 to d3">
-          <figcaption><b>Paper Fig. 1.</b> Source and target embeddings (t-SNE) increasingly overlap as the source encoder trains, and cross-decoded frames become target-consistent.</figcaption>
+          <figcaption><b>Paper Fig. 1.</b> As E<sub>S</sub> trains, source and target embeddings (top, t-SNE) increasingly overlap, and decoded source features (bottom) look increasingly like the target robot.</figcaption>
         </figure>
         <figure class="paper">
           <img loading="lazy" src="assets/img/fig2_pipeline.jpg" width="1600" height="664" alt="Paper Fig. 2: image generation, observation alignment, policy training, policy deployment">
-          <figcaption><b>Paper Fig. 2.</b> Image generation, observation alignment, policy training and policy deployment.</figcaption>
+          <figcaption><b>Paper Fig. 2.</b> Render paired observations, align E<sub>S</sub> to the frozen E<sub>T</sub>, train a latent policy on encoded source demonstrations, and deploy it on the target robot through E<sub>T</sub>.</figcaption>
         </figure>
       </div>
-      <aside class="callout reveal">
-        <h3>Why freeze the target encoder</h3>
-        <p>The features seen at deployment come from exactly the model that defined the alignment objective. Training only the source side asks each source image for the representation of its matched target image, instead of pushing both robots into a shared space that neither occupies at test time.</p>
-      </aside>
     </div>
   </section>
 
@@ -311,7 +326,7 @@
       <div class="sec-head reveal">
         <p class="kicker">Results &middot; simulation</p>
         <h2>One policy. Three robots. No target data.</h2>
-        <p class="lead">Policies are trained only on Franka demonstrations and evaluated zero-shot on xArm7 and Sawyer, across three tasks that stress different manipulation modes.</p>
+        <p class="lead">Each policy is trained on 300 Franka demonstrations and run on xArm7 and Sawyer with no target demonstrations. The three arms share a Cartesian end-effector action interface but differ in link geometry, joint limits, gripper mechanism and appearance, so the robot in the image is the only thing that changes. The tasks stress articulated contact, grasp-and-place precision and nonprehensile pushing.</p>
       </div>
 
       <div class="tabs reveal">
@@ -327,13 +342,12 @@
             </div>
             <div class="cards three">
             <figure class="card"><div class="media sq">
-              <video data-robot="franka" data-src="assets/vid/bg_v02_close_box_franka.mp4" poster="assets/poster/bg_v02_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Close Box Lid on Franka"></video></div><div class="cap-bar" data-demo="97" data-unseen="88.6"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">88.6% success</span><span class="meter"><i style="width:88.6%"></i></span></div></figure>
+              <video data-robot="franka" data-src="assets/vid/bg_v02_close_box_franka.mp4" poster="assets/poster/bg_v02_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Close Box Lid on Franka"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">97% success</span><span class="meter"><i style="width:97%"></i></span></div></figure>
             <figure class="card"><div class="media sq" data-only="v02 v06">
-              <video data-robot="xarm7" data-src="assets/vid/bg_v02_close_box_xarm7.mp4" poster="assets/poster/bg_v02_close_box_xarm7.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Close Box Lid on xArm7"></video><div class="only-note">xArm7 rendered in the Wood floor and Gold studio scenes</div></div><div class="cap-bar" data-demo="93" data-unseen="85.6"><span class="who good"><i class="r-xarm">xArm7</i> &middot; zero-shot</span><span class="num good">85.6% success</span><span class="meter good"><i style="width:85.6%"></i></span></div></figure>
+              <video data-robot="xarm7" data-src="assets/vid/bg_v02_close_box_xarm7.mp4" poster="assets/poster/bg_v02_close_box_xarm7.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Close Box Lid on xArm7"></video><div class="only-note">xArm7 rendered in the Wood floor and Gold studio scenes</div></div><div class="cap-bar"><span class="who good"><i class="r-xarm">xArm7</i> &middot; zero-shot</span><span class="num good">93% success</span><span class="meter good"><i style="width:93%"></i></span></div></figure>
             <figure class="card"><div class="media sq">
-              <video data-robot="sawyer" data-src="assets/vid/bg_v02_close_box_sawyer.mp4" poster="assets/poster/bg_v02_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Close Box Lid on Sawyer"></video></div><div class="cap-bar" data-demo="81" data-unseen="80.0"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; zero-shot</span><span class="num good">80.0% success</span><span class="meter good"><i style="width:80.0%"></i></span></div></figure>
+              <video data-robot="sawyer" data-src="assets/vid/bg_v02_close_box_sawyer.mp4" poster="assets/poster/bg_v02_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Close Box Lid on Sawyer"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; zero-shot</span><span class="num good">81% success</span><span class="meter good"><i style="width:81%"></i></span></div></figure>
             </div>
-            <p class="scene-note">The policy never saw this scene. Rates are the mean over five unseen scenes (supplement Table 5). In the Gold studio demonstration scene they are 97, 93 and 81% for Franka, xArm7 and Sawyer (Table 1).</p>
           </div>
           <div class="pane">
             <p class="task-line">Grasp-and-place precision</p>
@@ -353,17 +367,16 @@
             </div>
             <div class="cards three">
             <figure class="card"><div class="media sq">
-              <video data-robot="franka" data-src="assets/vid/bg_v04_football_franka.mp4" poster="assets/poster/bg_v04_football_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Kick Football on Franka"></video></div><div class="cap-bar" data-demo="93"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">unseen scene</span><span class="meter" hidden><i style="width:0%"></i></span></div></figure>
+              <video data-robot="franka" data-src="assets/vid/bg_v04_football_franka.mp4" poster="assets/poster/bg_v04_football_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Kick Football on Franka"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">93% success</span><span class="meter"><i style="width:93%"></i></span></div></figure>
             <figure class="card"><div class="media sq" data-only="v04 v06">
-              <video data-robot="xarm7" data-src="assets/vid/bg_v04_football_xarm7.mp4" poster="assets/poster/bg_v04_football_xarm7.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Kick Football on xArm7"></video><div class="only-note">xArm7 rendered in the Red tiles and Gold studio scenes</div></div><div class="cap-bar" data-demo="89"><span class="who good"><i class="r-xarm">xArm7</i> &middot; zero-shot</span><span class="num good">unseen scene</span><span class="meter good" hidden><i style="width:0%"></i></span></div></figure>
+              <video data-robot="xarm7" data-src="assets/vid/bg_v04_football_xarm7.mp4" poster="assets/poster/bg_v04_football_xarm7.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Kick Football on xArm7"></video><div class="only-note">xArm7 rendered in the Red tiles and Gold studio scenes</div></div><div class="cap-bar"><span class="who good"><i class="r-xarm">xArm7</i> &middot; zero-shot</span><span class="num good">89% success</span><span class="meter good"><i style="width:89%"></i></span></div></figure>
             <figure class="card"><div class="media sq">
-              <video data-robot="sawyer" data-src="assets/vid/bg_v04_football_sawyer.mp4" poster="assets/poster/bg_v04_football_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Kick Football on Sawyer"></video></div><div class="cap-bar" data-demo="77"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; zero-shot</span><span class="num good">unseen scene</span><span class="meter good" hidden><i style="width:0%"></i></span></div></figure>
+              <video data-robot="sawyer" data-src="assets/vid/bg_v04_football_sawyer.mp4" poster="assets/poster/bg_v04_football_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Kick Football on Sawyer"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; zero-shot</span><span class="num good">77% success</span><span class="meter good"><i style="width:77%"></i></span></div></figure>
             </div>
-            <p class="scene-note">The policy never saw this scene. Kick Football was not scored in unseen scenes, so no rate is shown here. In the Gold studio demonstration scene it reaches 93, 89 and 77% for Franka, xArm7 and Sawyer (Table 1).</p>
           </div>
         </div>
       </div>
-      <p class="fine reveal">Each clip is one UniLatent rollout. In the Gold studio, where the Franka demonstrations were collected, percentages are UniLatent&rsquo;s success over 100 rollouts on that robot (Table 1). The other scenes were never seen in training.</p>
+      <p class="fine reveal">Each clip is one UniLatent rollout. Percentages are UniLatent&rsquo;s success over 100 rollouts on that robot (Table 1). The scene picker changes only the rendered appearance of the example clips.</p>
 
 
       <div class="chart glass panel reveal" id="simChart">
@@ -412,7 +425,7 @@
       <div class="sec-head reveal">
         <p class="kicker">Results &middot; real robots</p>
         <h2>xArm demonstrations, Franka deployment.</h2>
-        <p class="lead">Demonstrations are collected on a real xArm. The latent policy is pretrained in the aligned space, then fine-tuned on only 10 Franka demonstrations per task. A single task-agnostic encoder, aligned entirely on simulated renderings, drives all three tasks.</p>
+        <p class="lead">Demonstrations come from a real xArm, and the target is a real Franka seen from the same camera. One task-agnostic encoder serves all three tasks. It was aligned only on about 100k generic simulated pairs, with off-the-shelf DINOv2 as the frozen target encoder. The physical robots also differ in controllers and calibration, so the latent policy is pretrained on the xArm data and fine-tuned with 10 Franka demonstrations per task.</p>
       </div>
 
       <div class="tabs reveal">
@@ -470,7 +483,7 @@
             <tr class="ours"><td>UniLatent pretrain + few-shot (ours)</td><td>10/10</td><td>9/10</td><td>8/10</td></tr>
           </tbody>
         </table>
-        <p class="caption">Source-only trains and evaluates on xArm and is a reference, not a transfer result. All other rows run on Franka with the same 10 Franka demonstrations. The gain over target-only training is largest on Close Box Lid (2/10 to 9/10) and Wipe Table (2/10 to 8/10).</p>
+        <p class="caption">Source-only trains and evaluates on xArm, an in-domain reference rather than a transfer result. The other rows run on Franka with the same 10 Franka demonstrations and differ only in how the xArm data is used: not at all (target-only, 11/30), translated into Franka images by the diffusion-based RoVi-Aug pipeline (23/30), or encoded into the aligned latent space (UniLatent, 27/30).</p>
       </div>
     </div>
   </section>
@@ -481,28 +494,28 @@
       <div class="sec-head reveal">
         <p class="kicker">Why latent transfer helps</p>
         <h2>Translated frames look right and act wrong.</h2>
-        <p class="lead">A translated frame can keep the global layout while getting the wrist, the gripper opening or the contact region subtly wrong, and a closed-loop policy amplifies exactly those errors. UniLatent uses the same paired renderings to align features, and never trains the policy on synthesized pixels.</p>
+        <p class="lead">Pixel translation and UniLatent both map the source robot onto the target, but in different places. A translated frame can keep the global layout while getting the wrist, the gripper opening or the contact region subtly wrong, and the policy trained on those frames then meets real target images at test time. UniLatent&rsquo;s policy trains and acts on features from one frozen encoder, so there is no such mismatch.</p>
       </div>
-        <p class="fine wide reveal"><b>What we compare.</b> Prior cross-embodiment methods make a source-robot frame look like the target robot, then train a policy on those edited pixels. The figure takes five source frames (top row) and shows what three translation strategies turn them into, next to the true target rendering (bottom row). A good translation would match the bottom row exactly.</p>
+        <p class="fine wide reveal"><b>What we compare.</b> Five xArm frames (top row) are translated into the Franka domain by three strategies and set against the true Franka rendering at the same end-effector pose (bottom row). A perfect translation would match the bottom row.</p>
       <figure class="paper solo reveal">
         <img loading="lazy" src="assets/img/suppfig1_pixel.jpg" width="1600" height="1143" alt="Five source frames translated by RoVi-Aug, Shadow* and RoVi-Aug*, compared with the true target renderings">
-        <figcaption><b>Translation strategies compared</b> (supplement Fig. 1). Rows, top to bottom: source frame, RoVi-Aug, Shadow*, RoVi-Aug*, true target.</figcaption>
+        <figcaption><b>Translation strategies compared</b> (paper appendix, Fig. 8). Rows, top to bottom: xArm source, RoVi-Aug, Shadow*, RoVi-Aug*, true Franka target.</figcaption>
       </figure>
       <div class="strategies reveal">
         <article class="strat">
           <h3>RoVi-Aug</h3>
-          <p class="how">Diffusion cross-painting (SDXL + ControlNet) repaints the robot as the target.</p>
-          <p class="what">Under hard poses it distorts links and joint structure. It is also slow, about 10 s per frame, or roughly 17 minutes per 10 s demonstration.</p>
+          <p class="how">Diffusion cross-painting (SDXL + ControlNet) segments out the source robot and paints the target robot in its place.</p>
+          <p class="what">Often plausible, but links and joint structure become unstable under hard poses and occlusions. About 10 s per frame, roughly 17 minutes per 10 s demonstration.</p>
         </article>
         <article class="strat">
           <h3>Shadow*</h3>
-          <p class="how">Segmentation masking replaces the robot with a flat silhouette.</p>
-          <p class="what">The mask hides the gripper and the contact region, which are exactly the cues manipulation depends on.</p>
+          <p class="how">Segmentation masking removes the source robot from the image.</p>
+          <p class="what">It avoids hallucinating a robot, but also erases the gripper and the contact evidence near the object.</p>
         </article>
         <article class="strat">
           <h3>RoVi-Aug*</h3>
-          <p class="how">Decodes the aligned source features into target-looking images, trained on the same paired renderings as UniLatent.</p>
-          <p class="what">The closest match to the target, yet still a little off at the wrist and gripper. In simulation it reaches 44.5% mean target success against 76% for UniLatent.</p>
+          <p class="how">Our controlled baseline. It decodes the aligned E<sub>S</sub> features into images with a pretrained decoder, using the same paired renderings, encoder and demonstrations as UniLatent.</p>
+          <p class="what">The most faithful translation, so the only remaining difference is whether the policy learns from translated pixels or from aligned features: 44.5% against 76% mean target success.</p>
         </article>
       </div>
       <h3 class="sub-h reveal">RoVi-Aug* in closed loop</h3>
@@ -597,7 +610,7 @@
               <tr class="ours"><td>Sawyer + Franka</td><td>200</td><td>91</td></tr>
             </tbody>
           </table>
-          <p class="caption">Each source gets its own encoder aligned to the same frozen target encoder. One policy trains on the union of demonstrations. Close Box Lid.</p>
+          <p class="caption">Franka and Sawyer each get a source encoder aligned to the same frozen xArm encoder, and one policy trains on both sets of demonstrations. 100 from each source (91%) match 200 Franka demonstrations (92%). Close Box Lid, Table 3a.</p>
         </div>
         <div class="table-wrap glass panel">
           <h3>Camera viewpoint shift</h3>
@@ -608,12 +621,12 @@
               <tr class="ours"><td>Cross-view (v1&harr;v2)</td><td>96</td><td>89</td></tr>
             </tbody>
           </table>
-          <p class="caption">Treating two viewpoints of the same robot as the two domains recovers most of the drop on the shifted view, with no test-time warping. Close Box Lid.</p>
+          <p class="caption">The pairs can also be two camera views of the same robot. Aligning view v1 to v2 lifts success on v2 from 62% to 89% while keeping 96% on v1. Close Box Lid, Table 3b.</p>
         </div>
       </div>
 
       <h3 class="sub-h reveal">Transfer holds in scenes the policy never saw</h3>
-      <p class="fine wide reveal">Source-side background randomization is inherited by the transferred policy, because alignment is anchored to a frozen target encoder. Left: the source Franka in its demonstration scene. Right: UniLatent on the target Sawyer in a different, unseen scene.</p>
+      <p class="fine wide reveal">When the Franka demonstrations are rendered with randomized backgrounds, the transferred policies keep most of their success in five held-out scenes: visual diversity added on the source side carries over to the target robot through the aligned latent space. Left: the source Franka. Right: UniLatent on the target Sawyer in a different scene.</p>
       <div class="tabs reveal">
         <input class="tab-in" type="radio" name="bg" id="bg-0" checked>
         <input class="tab-in" type="radio" name="bg" id="bg-1">
@@ -624,33 +637,33 @@
           <div class="pane">
             <div class="cards two">
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/ours_our_close_box_franka.mp4" poster="assets/poster/ours_our_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source demonstration scene, Close Box Lid"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">demo scene</span></div></figure>
+              <video data-src="assets/vid/ours_our_close_box_franka.mp4" poster="assets/poster/ours_our_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source, Gold studio, Close Box Lid"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">Gold studio</span></div></figure>
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/bg_v02_close_box_sawyer.mp4" poster="assets/poster/bg_v02_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Sawyer target in an unseen scene, Wood floor, Close Box Lid"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">unseen scene</span></div></figure>
+              <video data-src="assets/vid/bg_v02_close_box_sawyer.mp4" poster="assets/poster/bg_v02_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="UniLatent on Sawyer, Wood floor, Close Box Lid"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">Wood floor</span></div></figure>
             </div>
           </div>
           <div class="pane">
             <div class="cards two">
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/ours_our_close_box_franka.mp4" poster="assets/poster/ours_our_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source demonstration scene, Close Box Lid"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">demo scene</span></div></figure>
+              <video data-src="assets/vid/ours_our_close_box_franka.mp4" poster="assets/poster/ours_our_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source, Gold studio, Close Box Lid"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">Gold studio</span></div></figure>
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/bg_v03_close_box_sawyer.mp4" poster="assets/poster/bg_v03_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Sawyer target in an unseen scene, Teal studio, Close Box Lid"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">unseen scene</span></div></figure>
+              <video data-src="assets/vid/bg_v03_close_box_sawyer.mp4" poster="assets/poster/bg_v03_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="UniLatent on Sawyer, Teal studio, Close Box Lid"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">Teal studio</span></div></figure>
             </div>
           </div>
           <div class="pane">
             <div class="cards two">
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/ours_our_close_box_franka.mp4" poster="assets/poster/ours_our_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source demonstration scene, Close Box Lid"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">demo scene</span></div></figure>
+              <video data-src="assets/vid/ours_our_close_box_franka.mp4" poster="assets/poster/ours_our_close_box_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source, Gold studio, Close Box Lid"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">Gold studio</span></div></figure>
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/bg_v08_close_box_sawyer.mp4" poster="assets/poster/bg_v08_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Sawyer target in an unseen scene, Dark studio, Close Box Lid"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">unseen scene</span></div></figure>
+              <video data-src="assets/vid/bg_v08_close_box_sawyer.mp4" poster="assets/poster/bg_v08_close_box_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="UniLatent on Sawyer, Dark studio, Close Box Lid"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">Dark studio</span></div></figure>
             </div>
           </div>
           <div class="pane">
             <div class="cards two">
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/ours_football_franka.mp4" poster="assets/poster/ours_football_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source demonstration scene, Kick Football"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">demo scene</span></div></figure>
+              <video data-src="assets/vid/ours_football_franka.mp4" poster="assets/poster/ours_football_franka.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Franka source, Gold studio, Kick Football"></video></div><div class="cap-bar"><span class="who"><i class="r-franka">Franka</i> &middot; source</span><span class="num">Gold studio</span></div></figure>
             <figure class="card"><div class="media sq">
-              <video data-src="assets/vid/bg_v07_football_sawyer.mp4" poster="assets/poster/bg_v07_football_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="Sawyer target in an unseen scene, diamond plate, Kick Football"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">unseen scene</span></div></figure>
+              <video data-src="assets/vid/bg_v07_football_sawyer.mp4" poster="assets/poster/bg_v07_football_sawyer.jpg" width="384" height="384" muted loop playsinline preload="none" aria-label="UniLatent on Sawyer, diamond plate, Kick Football"></video></div><div class="cap-bar"><span class="who good"><i class="r-sawyer">Sawyer</i> &middot; target</span><span class="num good">Diamond plate</span></div></figure>
             </div>
           </div>
         </div>
@@ -659,11 +672,11 @@
         <table class="compact">
           <thead><tr><th>Close Box Lid</th><th>Franka (source)</th><th>xArm7</th><th>Sawyer</th></tr></thead>
           <tbody>
-            <tr><td>Randomized backgrounds, 5 unseen scenes</td><td>88.6</td><td>85.6</td><td>80.0</td></tr>
-            <tr class="ref"><td>Matched train&ndash;test background</td><td>97</td><td>93</td><td>81</td></tr>
+            <tr><td>Randomized source backgrounds, 5 held-out scenes</td><td>88.6</td><td>85.6</td><td>80.0</td></tr>
+            <tr class="ref"><td>Matched training and evaluation backgrounds</td><td>97</td><td>93</td><td>81</td></tr>
           </tbody>
         </table>
-        <p class="caption">Background-shift evaluation (supplement Table 5), reported for Close Box Lid only. Success rate (%).</p>
+        <p class="caption">Simulated background generalization (Table 3c), reported for Close Box Lid only. Success rate (%).</p>
       </div>
 
       <h3 class="sub-h reveal">Manipulation-relevant pose sampling makes the pairs useful</h3>
@@ -674,7 +687,7 @@
         </figure>
         <figure class="paper dark-cap">
           <img loading="lazy" src="assets/img/suppfig2b_poses.jpg" width="1600" height="1230" alt="A manipulation-relevant pose prior produces task-plausible tabletop configurations">
-          <figcaption><span class="metric good inline">93 / 81</span><b>Manipulation-relevant prior.</b> Task-plausible configurations with diverse gripper states. Transfer reaches 93% and 81%.</figcaption>
+          <figcaption><span class="metric good inline">93 / 81</span><b>Manipulation-relevant prior.</b> Task-plausible configurations with diverse gripper states. Transfer reaches 93% and 81% (Table 7).</figcaption>
         </figure>
       </div>
     </div>
@@ -687,7 +700,7 @@
         <p class="kicker">Limitations</p>
         <h2>What this does not cover</h2>
       </div>
-      <p class="abstract reveal">UniLatent targets single-arm robots with parallel-jaw grippers and a shared end-effector action interface. Dexterous hands, mobile manipulators and tasks that need tool-specific contact would require additional retargeting and contact modeling. The method assumes the target robot can complete source tasks within a comparable workspace. The real-world evaluation uses a single physical setup, so broader background and object variation remain future work.</p>
+      <p class="abstract reveal">UniLatent currently targets 7-DoF single-arm robots with parallel-jaw grippers and a shared end-effector action interface. Substantially different morphologies, such as dexterous hands, humanoids or mobile manipulators, and tasks that require tool-specific contact would need additional retargeting and contact modeling. Our tasks were designed so that both robots perform the same task in the same scene; applying UniLatent to external source datasets such as Open X-Embodiment remains to be demonstrated. The method also assumes the target robot can complete source tasks in a comparable workspace. Finally, the background-shift evaluation covers one simulated task and the real-world experiments use a single physical setup, so robustness to real-world clutter, lighting, distractors and broader object variation is not yet established.</p>
 
       <div class="sec-head reveal" id="cite">
         <p class="kicker">Citation</p>

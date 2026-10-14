@@ -36,18 +36,8 @@
   document.querySelectorAll('.scene-pick').forEach(pick => {
     const pane = pick.closest('.pane'), task = pick.dataset.task;
     const name = (sc, r) => sc === 'v06' ? `ours_${task}_${r}` : `bg_${sc}_${task.replace('our_', '')}_${r}`;
-    // rates: Table 1 in the demonstration scene (v06); in other scenes the unseen-scene mean where one was reported
-    const note = pane.querySelector('.scene-note'), unseenNote = note.textContent;
-    const demoNote = 'Gold studio is the scene the Franka demonstrations were collected in. Rates are success over 100 rollouts in this scene (Table 1).';
     pick.querySelectorAll('[data-scene]').forEach(b => b.addEventListener('click', () => {
       pick.querySelectorAll('[data-scene]').forEach(x => x.setAttribute('aria-pressed', x === b));
-      const demo = b.dataset.scene === 'v06';
-      note.textContent = demo ? demoNote : unseenNote;
-      pane.querySelectorAll('.cap-bar[data-demo]').forEach(bar => {
-        const v = demo ? bar.dataset.demo : bar.dataset.unseen, meter = bar.querySelector('.meter');
-        bar.querySelector('.num').textContent = v ? `${v}% success` : 'unseen scene';
-        meter.hidden = !v; meter.querySelector('i').style.width = (v || 0) + '%';
-      });
       pane.querySelectorAll('video[data-robot]').forEach(v => {
         const only = v.parentElement.dataset.only;
         if (only) { const off = !only.split(' ').includes(b.dataset.scene); v.parentElement.classList.toggle('off', off); if (off) { v.pause(); return; } }
