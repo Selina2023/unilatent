@@ -224,8 +224,9 @@
             <!-- scene 2: alignment over training -->
             <g class="scene s1">
               <rect class="panel-bg" x="20" y="30" width="470" height="400" rx="16" filter="url(#sh)"/>
-              <text class="cap" x="190" y="62">latent embeddings &#183; t-SNE</text>
-              <text class="lbl-s" x="255" y="414" id="hwEpoch">alignment training, epoch 4</text>
+              <text class="cap" x="255" y="62">latent embeddings &#183; t-SNE</text>
+              <text class="lbl-s" x="255" y="414" id="hwEpoch">aligned</text>
+              <g class="tkey"><circle cx="120" cy="88" r="6" fill="#4cbf7f"/><text x="132" y="93">Franka (source)</text><circle cx="270" cy="88" r="6" fill="#e9b938"/><text x="282" y="93">Sawyer (target)</text></g>
               <text class="cap" x="745" y="40">cross-decoding</text>
               <g id="hwThumbs"></g>
             </g>
@@ -274,8 +275,8 @@
           <!-- photos and clips laid over the drawing, positioned in viewBox percentages -->
           <img class="ph s0" id="hwSrc" src="assets/method/pair_franka_3.jpg" alt="Franka rendering" style="left:2%;top:23.4%;width:23%;">
           <img class="ph s0" id="hwTgt" src="assets/method/pair_sawyer_3.jpg" alt="Matched Sawyer rendering" style="left:75%;top:23.4%;width:23%;">
-          <div class="ph s1 dec tsne" style="left:6.5%;top:15%;width:38%;">
-            <img src="assets/method/tsne_e0.png" alt="t-SNE of source (Franka) and target (Sawyer) embeddings, epoch 0"><img src="assets/method/tsne_e1.png" alt=""><img src="assets/method/tsne_e2.png" alt=""><img src="assets/method/tsne_e3.png" alt=""><img src="assets/method/tsne_e4.png" alt="">
+          <div class="ph s1 dec tsne" style="left:8.5%;top:21.5%;width:34%;">
+            <img src="assets/method/tsne_s0.png" alt="t-SNE at the start of alignment: Franka and Sawyer features form two separate clusters"><img src="assets/method/tsne_s1.png" alt="t-SNE early in alignment: the clusters start to merge"><img src="assets/method/tsne_s2.png" alt="t-SNE later in alignment: the clusters overlap"><img src="assets/method/tsne_s3.png" alt="t-SNE after alignment: each Franka point sits on its paired Sawyer point">
           </div>
           <div class="ph s1 dec decode" style="left:62%;top:12%;width:26%;">
             <img src="assets/method/decode_0.png" alt="Cross-decoded frame d0"><img src="assets/method/decode_1.png" alt=""><img src="assets/method/decode_2.png" alt=""><img src="assets/method/decode_3.png" alt="">
@@ -301,7 +302,7 @@
 
         <div class="hw-cap" aria-live="polite">
           <p class="s0"><b>Align observations.</b> Each pair shows two robots at the same tool-center-point pose, from the same camera in the same randomized scene. E<sub>S</sub> is trained with an MSE loss on CLS and patch tokens to output, for the source image, the features the frozen E<sub>T</sub> gives the target image. After training, both images of a pair map to the same representation.</p>
-          <p class="s1"><b>Alignment over training.</b> Left: t-SNE of Franka (source) and Sawyer (target) embeddings from epoch 0 to 4. The two embodiments start in separate clusters and end overlapping. Right: decoding aligned Franka features back to pixels shows an increasingly Sawyer-like robot, a visual check that E<sub>S</sub> now encodes the target embodiment. The policy never uses these images.</p>
+          <p class="s1"><b>Alignment over training.</b> Left: t-SNE of Franka (source) and Sawyer (target) embeddings of paired renderings during alignment training. The two embodiments start as separate clusters, merge, and end with each Franka point on its paired Sawyer point. Right: decoding aligned Franka features back to pixels shows an increasingly Sawyer-like robot, a visual check that E<sub>S</sub> now encodes the target embodiment. The policy never uses these images.</p>
           <p class="s2"><b>Train the policy.</b> Source demonstrations are encoded with the aligned E<sub>S</sub>, now frozen. A flow-matching policy learns to predict chunks of 8 end-effector actions (position, orientation, gripper) from the last 3 latent observations. It trains on target-aligned features, never on pixels.</p>
           <p class="s3"><b>Deploy on the target.</b> The target robot&rsquo;s camera images go through the frozen E<sub>T</sub>, the encoder that defined the alignment, and the same policy acts on them in closed loop. No image is translated or generated at test time.</p>
         </div>

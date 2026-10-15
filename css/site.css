@@ -384,6 +384,7 @@ td.mean, th.mean { border-left: 1px solid var(--line); font-weight: 650; }
 .hw-stage .pi-l { font: italic 700 32px var(--font); fill: #1d1d1f; text-anchor: middle; }
 .hw-stage .lbl-b { font: 700 24px var(--font); fill: #1d1d1f; text-anchor: middle; }
 .hw-stage .lbl-s { font: 500 15px var(--font); fill: #6f6a5c; text-anchor: middle; }
+.hw-stage .tkey text { font: 500 13.5px var(--font); fill: #6f6a5c; }
 .hw-stage .cap { font: 700 12.5px var(--font); letter-spacing: .12em; text-transform: uppercase; fill: #8d887a; text-anchor: middle; }
 .hw-stage .cap.g { fill: #4a804e; } .hw-stage .cap.a { fill: #b37a17; }
 .hw-stage .panel-bg { fill: #fff; }

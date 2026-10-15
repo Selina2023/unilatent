@@ -75,7 +75,7 @@
       const st = p * 3, se = p * (tsne.length - 1);
       decs.forEach((im, k) => { im.style.opacity = Math.max(0, 1 - Math.abs(st - k)); });
       tsne.forEach((im, k) => { im.style.opacity = Math.max(0, 1 - Math.abs(se - k)); });
-      epochLab.textContent = `alignment training, epoch ${Math.round(se)}`;
+      epochLab.textContent = ['separate', 'merging', 'overlapping', 'aligned'][Math.round(se)] || '';
       hi.forEach((r, k) => { r.style.opacity = Math.max(0, 1 - Math.abs(st - k)); });
       const near = Math.round(st); out.innerHTML = `d<sub>${near}</sub>`;
     };
