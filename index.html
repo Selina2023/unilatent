@@ -78,10 +78,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h10v15.25l-5-3.5-5 3.5Z"/></svg>BibTeX</a>
     </nav>
 
-    <p class="tldr"><b>TL;DR</b>
+    <p class="tldr glass panel"><b>TL;DR</b>
       A vision policy trained on one robot fails on another, because the arm it sees in the image has changed.
       UniLatent closes this gap in the policy&rsquo;s feature space instead of in pixels. It trains the source robot&rsquo;s image encoder
-      to produce the features that a frozen encoder gives the target robot in the same pose, using paired renderings from
+      to produce the features that a <em>frozen</em> encoder gives the target robot in the same pose, using paired renderings from
       simulation. Source demonstrations encoded this way look to the policy as if they came from the target robot, so the policy runs
       on the target directly, with no image translated or generated.
     </p>
