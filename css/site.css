@@ -1,4 +1,4 @@
-/* UniLatent project page. Plain white header, then alternating dark, light and studio bands
+/* UniLatent project page. White frosted-glass opening, then alternating dark, light and studio bands
    (after eigendexplore.github.io). Glass = lightly frosted capsule with a specular rim brightest top-left. */
 :root {
   --font: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
@@ -61,10 +61,18 @@ sub { font-size: .72em; }
 :is(.opening, .light) .glass::before { background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,.5) 22%, rgba(255,255,255,0) 50%, rgba(0,0,0,.04) 78%, rgba(0,0,0,.07) 100%); }
 
 /* ------------------------------------------------------------ opening */
-.opening { position: relative; background: #fff; border-bottom: 1px solid rgba(0,0,0,.06); }
+.opening { position: relative; overflow: hidden; background: radial-gradient(90% 60% at 50% 0%, #fff 0%, #fafafb 55%, #f2f2f5 100%); }
+.aurora { position: absolute; inset: -10% -10% auto; height: 760px; pointer-events: none; filter: blur(70px); opacity: .55; }
+.aurora i { position: absolute; width: 420px; height: 420px; border-radius: 50%; mix-blend-mode: multiply; animation: drift 18s ease-in-out infinite alternate; }
+.aurora i:nth-child(1) { background: #d3ead8; left: 10%; top: 6%; }
+.aurora i:nth-child(2) { background: #f7e2bc; right: 10%; top: 12%; animation-delay: -6s; }
+.aurora i:nth-child(3) { background: #e3e0f2; left: 40%; top: 30%; animation-delay: -12s; }
+@keyframes drift { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,-30px) scale(1.08); } 100% { transform: translate(-30px,30px) scale(.95); } }
+@media (prefers-reduced-motion: reduce) { .aurora i { animation: none; } }
 
-.hero { position: relative; max-width: 880px; margin: 0 auto; padding: 72px var(--gut) 56px; text-align: center; }
-.venue { margin: 14px 0 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+.hero { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 64px var(--gut) 60px; text-align: center; }
+.venue { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--ink2); }
+.venue .dot { width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(135deg, var(--src), var(--tgt)); box-shadow: 0 0 0 3px rgba(227,169,60,.18); }
 .title { margin: 0; font-size: clamp(46px, 7.4vw, 80px); line-height: 1; letter-spacing: -.035em; font-weight: 800; color: #111; }
 .title .uni { background: linear-gradient(100deg, #4f9a66 0%, #b7a24a 55%, #e3a93c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .subtitle { margin: 14px auto 0; max-width: 720px; font-size: clamp(17px, 2.1vw, 22px); line-height: 1.35; color: var(--ink2); font-weight: 500; text-wrap: balance; }
@@ -80,15 +88,16 @@ sub { font-size: .72em; }
 
 .links { margin: 24px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px 9px 15px; min-height: 42px; text-decoration: none; border: 0;
-  border-radius: 10px; font-weight: 600; font-size: 15px; background: #1d1d1f; color: #fff; transition: background .15s ease; }
+  font-weight: 600; font-size: 15px; transition: transform .2s ease; }
 .btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .btn svg .fill { fill: currentColor; stroke: none; }
-.btn:hover { background: #3a3a3d; }
-.btn.soon { background: #f2f2f4; color: var(--ink3); cursor: default; }
-.btn.soon:hover { background: #f2f2f4; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: scale(.97); }
+.btn.soon { color: var(--ink3); cursor: default; }
+.btn.soon:hover { transform: none; }
 .btn.soon::after { content: "soon"; margin-left: 2px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(0,0,0,.06); }
 
-.tldr { margin: 26px auto 0; max-width: 720px; padding: 16px 20px; text-align: left; font-size: 15.5px; line-height: 1.6; color: var(--ink2); text-wrap: pretty; }
+.tldr { margin: 24px auto 0; max-width: 720px; padding: 16px 20px; text-align: left; font-size: 15.5px; line-height: 1.6; color: var(--ink2); text-wrap: pretty; }
 .tldr b { color: var(--ink); margin-right: 6px; }
 .tldr em { font-style: normal; font-weight: 650; color: #b07b1c; }
 
