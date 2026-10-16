@@ -499,6 +499,8 @@ td.mean, th.mean { border-left: 1px solid var(--line); font-weight: 650; }
 .more-bg summary:hover { background: rgba(255,255,255,.1); }
 .more-bg .opened, .more-bg[open] .closed { display: none; }
 .more-bg[open] .opened { display: inline; }
-.more-bg .gal-h { margin: 22px 0 0; font-size: 16px; font-weight: 650; color: var(--ink2); }
 .cards.gallery { margin-top: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .cards.gallery .cap-bar .who, .cards.gallery .cap-bar .num { font-size: 13px; }
+.cards.gallery.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 760px) { .cards.gallery.five { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 64%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  .cards.gallery.five > .card { scroll-snap-align: start; } }
