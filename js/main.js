@@ -1,6 +1,6 @@
 // UniLatent page enhancements. The clip tabs are pure CSS (radio inputs) and work without this script.
 // It adds lazy video loading, play/pause by visibility, the method walkthrough, the results chart,
-// copy-to-clipboard and count-up numbers.
+// and copy-to-clipboard.
 (() => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!('IntersectionObserver' in window)) {
@@ -146,15 +146,4 @@
     draw();
   }
 
-  // count-up: <b data-count="76" data-suffix="%">76%</b> (the final value is already in the markup)
-  const cio = new IntersectionObserver(es => es.forEach(e => {
-    if (!e.isIntersecting) return; cio.unobserve(e.target);
-    const el = e.target, end = parseFloat(el.dataset.count), suf = el.dataset.suffix || '';
-    if (reduced || !end) return;
-    const t0 = performance.now(), dur = 1300;
-    const tick = t => { const k = Math.min(1, (t - t0) / dur);
-      el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))) + suf; if (k < 1) requestAnimationFrame(tick); };
-    requestAnimationFrame(tick);
-  }), { threshold: .6 });
-  document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
 })();
