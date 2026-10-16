@@ -66,6 +66,7 @@ sub { font-size: .72em; }
 .hero { position: relative; max-width: 880px; margin: 0 auto; padding: 72px var(--gut) 56px; text-align: center; }
 .venue { margin: 14px 0 0; font-size: 15px; font-weight: 600; color: var(--ink); }
 .title { margin: 0; font-size: clamp(46px, 7.4vw, 80px); line-height: 1; letter-spacing: -.035em; font-weight: 800; color: #111; }
+.title .uni { background: linear-gradient(100deg, #4f9a66 0%, #b7a24a 55%, #e3a93c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .subtitle { margin: 14px auto 0; max-width: 720px; font-size: clamp(17px, 2.1vw, 22px); line-height: 1.35; color: var(--ink2); font-weight: 500; text-wrap: balance; }
 .authors { margin: 22px auto 0; display: flex; flex-direction: column; gap: 2px; }
 .arow { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 18px; font-size: 16px; }
@@ -182,8 +183,9 @@ h3 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
 
 .split { margin-top: 28px; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .split.even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.split.figs { grid-template-columns: minmax(0, 308fr) minmax(0, 241fr); align-items: stretch; }   /* Fig. 1 and Fig. 2 at equal image height (aspect 3.08 vs 2.41) */
 .split > .paper { margin: 0; }
-@media (max-width: 860px) { .split, .split.even { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .split, .split.even, .split.figs { grid-template-columns: 1fr; } }
 .callout { padding: 24px 24px 22px; border-radius: 22px; background: #fff; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 10px 30px rgba(0,0,0,.06); position: relative; overflow: hidden; }
 .callout::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--src), var(--tgt)); }
 .callout p { margin: 10px 0 0; color: var(--ink2); font-size: 15.5px; line-height: 1.6; }
